@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<extension method="upgrade" type="component" version="2.5">
+    <name>PayU</name>
+    <creationDate>July 12 2018</creationDate>
+    <author>ipolh.com</author>
+    <authorEmail>support|at|ipolh.com</authorEmail>
+    <authorUrl>http://ipolh.com</authorUrl>
+    <copyright></copyright>
+    <license>http://www.gnu.org/licenses/gpl-2.0.html GNU/GPL</license>
+    <version status="MAYOR">0.0.1</version>
+    <description></description>
+
+    <scriptfile>script.vmpayu.php</scriptfile>
+    <installfile>script.vmpayu.php</installfile>
+    <uninstallfile>script.vmpayu.php</uninstallfile>
+
+    <administration>
+        <files folder="admin">
+            <filename>index.html</filename> 
+            <filename>admin.virtuemart_payu_plugin.php</filename>
+            <folder>plugins</folder>
+            <folder>languageBE</folder>
+        </files>
+    </administration>
+</extension>

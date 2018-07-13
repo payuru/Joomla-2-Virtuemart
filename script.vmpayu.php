@@ -18,7 +18,7 @@ if (!defined('_VM_SCRIPT_INCLUDED')) {
 	define('_VM_SCRIPT_INCLUDED', true);
 
 
-	class com_VirtueMart_payu_pluginInstallerScript {
+	class com_payuinstallerscript {
 
 		public function preflight(){
 			//$this->vmInstall();
