@@ -1,9 +1,9 @@
 (For PayU Ukraine and Russian ONLY)
 -------
 
-Модуль для Joomla 2.x Virtuemart 2.x 
+Модуль для Joomla 3.7.x Virtuemart 3.7.x
 ==========
-( Протестирован на Joomla 2.5.9 Virtuemart 2.0.20b )
+( Протестирован на Joomla 3.7.5 Virtuemart 3.2.4 )
 
 -------
 
