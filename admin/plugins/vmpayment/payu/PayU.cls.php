@@ -1,279 +1,409 @@
 <?php
 class PayU
-{
+{ 
 	var $luUrl = "https://secure.payu.ru/order/lu.php", 
-		$button = "<input type='submit'>",
-		$debug = 0,
-		$showinputs = "hidden",
-		$idnUrl = "https://secure.payu.ru/order/idn.php",
-		$irnUrl = "https://secure.payu.ru/order/irn.php" ;
+		$button = "<input type=\"submit\" class=\"goPayment\" value=\"#SUBMIT_TEXT#\">", 
+		$debug = 0, 
+		$showinputs = "hidden", 
+		$isWinEncode = false, 
+		$encoding = 'utf-8';
 
-	private static $Inst = false, $merchant, $key;
+	private static $Inst = false, 
+			$merchant, 
+			$key;
 
-	private $data = array(), $dataArr = array(), $answer = ""; 
-	private $LUcell = array( 'MERCHANT' => 1, 'ORDER_REF' => 0, 'ORDER_DATE' => 1, 'ORDER_PNAME' => 1, 'ORDER_PGROUP' => 0,
-							'ORDER_PCODE' => 1, 'ORDER_PINFO' => 0, 'ORDER_PRICE' => 1, 'ORDER_QTY' => 1, 'ORDER_VAT' => 1, 
-							'ORDER_SHIPPING' => 1, 'PRICES_CURRENCY' => 1, 'DISCOUNT' => 0, 'PAY_METHOD' => 0, 'ORDER_PRICE_TYPE' => 0);
+	private $isEncode = false;
 
+	private $data = array(), 
+			$dataArr = array(), 
+			$answer = "", 
+			$userFormContent;
 
-	private $IPNcell = array( "IPN_PID", "IPN_PNAME", "IPN_DATE", "ORDERSTATUS" );
+	private $LUcell = array(
+		'MERCHANT'        => 1,
+		'ORDER_REF'       => 0,
+		'ORDER_DATE'      => 1,
+		'ORDER_PNAME'     => 1,
+		'ORDER_PGROUP'    => 0,
+		'ORDER_PCODE'     => 1,
+		'ORDER_PINFO'     => 0, 
+		'ORDER_PRICE'     => 1,
+		'ORDER_QTY'       => 1,
+		'ORDER_VAT'       => 1,
+		'ORDER_SHIPPING'  => 1,
+		'PRICES_CURRENCY' => 1,
+        'ORDER_PRICE_TYPE'=> 1,
+	);
 
-	private $IDNcell = array(  'MERCHANT' => 1, 'ORDER_REF' => 1, 'ORDER_AMOUNT' => 1, 'ORDER_CURRENCY' => 1, 'IDN_DATE' => 1 );
-	private $IRNcell = array(  'MERCHANT' => 1, 'ORDER_REF' => 1, 'ORDER_AMOUNT' => 1, 'ORDER_CURRENCY' => 1, 'IRN_DATE' => 1 );
+	private $IPNcell = array(
+		"IPN_PID", 
+		"IPN_PNAME", 
+		"IPN_DATE", 
+		"ORDERSTATUS"
+	);
 
+    public $checkHash;
 
-	private function __construct(){}
-	private function __clone(){}
-	public function __toString()
-	{ 
-		return ( $this->answer === "" ) ? "<!-- Answer are not exists -->" : $this->answer;  
+    public function getIPNAnswer() 
+    {
+        return $this->answer;
+    }
+
+	private function __construct()
+	{
 	}
+
+	private function __clone()
+	{ 
+	}
+
+	public function __toString()
+	{
+		return ( $this->answer == "" ) ? "<!-- Answer are not exists -->" : $this->answer;
+	}
+
 	public static function getInst()
-	{	
-		if( self::$Inst === false ) self::$Inst = new PayU();
+	{
+		if ( self::$Inst === false ) {
+			self::$Inst = new static();
+		}
+
 		return self::$Inst;
 	}
 
-#---------------------------------------------
-# Add all options for PayU object. 
-# Can change all public variables;
-# $opt = array( merchant, secretkey, [ luUrl, debug, button ] );
-#---------------------------------------------
+	public static function getKey() 
+	{
+		return array(self::$key , self::$merchant);
+	}
+
+	#---------------------------------------------
+	# Add all options for PayU_Bitrix object.
+	# Can change all public variables;
+	# $opt = array( merchant, secretkey, [ luUrl, debug, button ] );
+	#---------------------------------------------
 	function setOptions( $opt = array() )
 	{
-		if ( !isset( $opt['merchant'] ) || !isset( $opt['secretkey'] )) die("No params");
+		if (!isset( $opt['merchant'] ) || !isset($opt['secretkey']))  {
+			die( "No params" );
+		}
+
 		self::$merchant = $opt['merchant'];
-		self::$key = htmlspecialchars_decode( $opt['secretkey'] );
+		self::$key      = $opt['secretkey'];
 		unset( $opt['merchant'], $opt['secretkey'] );
-		if ( count($opt) === 0 ) return $this;
-		foreach ( $opt as $k => $v) $this->$k = $v;
+
+		if (count($opt) === 0) {
+			return $this;
+		}
+
+		foreach ($opt as $k => $v) {
+			$this->$k = $v;
+		}
+
 		return $this;
 	}
 
-	function setData( $array = null )
-	{	
-		if ($array === null ) die("No data");
-		$this->dataArr = $array;
-		return $this;
-	}
-
-#--------------------------------------------------------
-#	Generate HASH
-#--------------------------------------------------------
-	function Signature( $data = null ) 
-	{		
-		$str = "";
-		foreach ( $data as $v ) $str .= $this->convData( $v );
-		return hash_hmac("md5",$str, self::$key);
-	}
-
-#--------------------------------------------------------
-# Outputs a string for hmac format.
-# For a string like 'aa' it will return '2aa'.
-#--------------------------------------------------------
-	private function convString($string) 
-	{	
-		return mb_strlen($string, '8bit') . $string;
-	}
-
-#--------------------------------------------------------
-# The same as convString except that it receives
-# an array of strings and returns the string from all values within the array.
-#--------------------------------------------------------	
-	private function convArray($array) 
+	function setData( $array = NULL )
 	{
-  		$return = '';
-  		foreach ($array as $v) $return .= $this->convString( $v );
-  		return $return;
+		if ($array === NULL) {
+			die( "No data" );
+		}
+
+		$this->dataArr = $array;
+
+		return $this;
+	}
+
+	#--------------------------------------------------------
+	#	Generate HASH
+	#--------------------------------------------------------
+	function Signature( $data = NULL )
+	{
+		$str = "";
+
+		foreach ($data as $v) {
+			$str .= $this->convData($v);
+		}
+
+		if (strtoupper($this->encoding) != 'UTF-8') {
+			$str = iconv(strtoupper($this->encoding),'UTF-8',$str);
+		}
+
+		if ($this->debug > 0) {
+			$str .= '4TRUE';
+		}
+
+		if (function_exists('hash_hmac')) {
+			return hash_hmac("md5", $str, self::$key);
+		}
+
+		return $this->hash_hmac("md5", self::$key,$str);
+	}
+
+	function SignatureFromStr($str) 
+	{
+		if( strtoupper($this->encoding) != 'UTF-8' ) {
+			$str = iconv(strtoupper($this->encoding),'UTF-8',$str);
+		}
+
+		if(function_exists('hash_hmac')) {
+			return hash_hmac("md5", $str, self::$key);
+		}
+
+		return $this->hash_hmac("md5", self::$key,$str);
+	}
+
+	function hash_hmac($algo, $data, $key, $raw_output = false)
+	{
+		$algo = strtolower($algo);
+		$pack = 'H'.strlen($algo($key));
+		$size = 64;
+		$opad = str_repeat(chr(0x5C), $size);
+		$ipad = str_repeat(chr(0x36), $size);
+
+		if (strlen($key) > $size) {
+			$key = str_pad(pack($pack, $algo($key)), $size, chr(0x00));
+		} else {
+			$key = str_pad($key, $size, chr(0x00));
+		}
+
+		for ($i = 0; $i < strlen($key) - 1; $i++) {
+			$opad[$i] = $opad[$i] ^ $key[$i];
+			$ipad[$i] = $ipad[$i] ^ $key[$i];
+		}
+
+		$output = $algo($opad.pack($pack, $algo($ipad.$data)));
+
+		return ($raw_output) ? pack($pack, $output) : $output;
+	}
+
+	private function convString( $string )
+	{
+		return $this->utf8_strlen($string) . $this->makeValidStr($string);
+	}
+
+	private function convArray( $array )
+	{
+		$return = '';
+		foreach ( $array as $v )
+		{
+			$return .= $this->convString($v);
+		}
+
+		return $return;
 	}
 
 	private function convData( $val )
 	{
-		return ( is_array( $val ) ) ? $this->convArray( $val ) : $this->convString( $val );
+		return ( is_array($val) ) ? $this->convArray($val) : $this->convString($val);
 	}
-#----------------------------
+	#----------------------------
 
-#====================== LU GENERETE FORM =================================================
+	#====================== LU GENERETE FORM =================================================
 
 	public function LU()
-	{	
-		$arr = &$this->dataArr;
+	{
+		$arr = & $this->dataArr;
+		if ( $this->isWinEncode )
+		{
+			$this->isEncode = true;
+		}
 		$arr['MERCHANT'] = self::$merchant;
-		if( !isset($arr['ORDER_DATE']) ) $arr['ORDER_DATE'] = date("Y-m-d H:i:s");
-		$arr['TESTORDER'] = ( $this->debug == 1 ) ? "TRUE" : "FALSE";
-		$arr['DEBUG'] = $this->debug;
-		$arr['ORDER_HASH'] = $this->Signature( $this->checkArray( $arr ) );
-		$this->answer = $this->genereteForm( $arr );
+		if ( !isset( $arr['ORDER_DATE'] ) )
+		{
+			$arr['ORDER_DATE'] = date("Y-m-d H:i:s");
+		}
+		$arr['TESTORDER']  = ( $this->debug == 1 ) ? "TRUE" : "FALSE";
+		$arr['DEBUG']      = $this->debug;
+
+		$arr['ORDER_HASH'] = $this->Signature($this->checkArray($arr));
+		
+		$this->data   = $arr;
+		$this->answer = $this->getForm($arr);
+
 		return $this;
 	}
 
-#-----------------------------
-# Check array for correct data
-#-----------------------------
+	#-----------------------------
+	# Check array for correct data
+	#-----------------------------
 	private function checkArray( $data )
 	{
 		$this->cells = array();
-		$ret = array();
-		foreach ( $this->LUcell as $k => $v ) 
-		{ 	
-			if ( isset($data[$k]) ) $ret[$k] = $data[$k];
-			 elseif ( $v == 1 ) die("$k is not set");
+		$ret         = array();
+		$LUcell = $this->LUcell;
+		foreach ( $LUcell as $k => $v )
+		{
+			if ( !empty( $data[$k] ) )
+			{
+				$ret[$k] = $data[$k];
+			}
+			elseif ( $v == 1 )
+			{
+				die( "$k is not set" );
+			}
 		}
 		return $ret;
 	}
 
-#-----------------------------
-# Method which create a form
-#-----------------------------
-	private function genereteForm( $data )
-	{	
-		$form = '<form method="post" action="'.$this->luUrl.'" id="PayUForm" accept-charset="utf-8">';
-		foreach ( $data as $k => $v ) $form .= $this->makeString( $k, $v );
-		return $form . $this->button."</form>";
-	}	
+	#-----------------------------
+	# Method which create a form
+	#-----------------------------
+	public function getForm( $arExtFields = array() )
+	{
+		$form = '<form id="PayU_Form" method="post" action="' . $this->luUrl . '" accept-charset="UTF-8">';
+		foreach ( $this->data as $k => $v )
+		{
+			$form .= $this->makeString($k, $v);
+		}
 
-#-----------------------------
-# Make inputs for form
-#-----------------------------	
-	private function makeString ( $name, $val )
+		if(!empty($arExtFields))
+		{
+			$form .='<div id="PayU_Fields_Automode">';
+
+			foreach($arExtFields as $field)
+			{
+				if(!empty($field['0']) && is_array($field))
+				{
+					foreach ( $field as $v )
+					{
+						if ( !empty($field['name']) && ( !empty($field['label']['name']) || $field['type']=='hidden') )
+						{
+							$val = !empty($field['value'])?$this->makeValidStr($field['value']):'';
+							$form .= '
+								<label '.(!empty($field['label']['attributes'])?$field['label']['attributes']:'').'>
+									'. $field['label']['name'] .'&nbsp;&nbsp; <input '.(!empty($field['attributes'])?$field['attributes']:'').' type="' . (!empty($field['type'])?$field['type']:$this->showinputs) . '" name="' . strtoupper($field['name']) . '" value="' . htmlspecialchars($val,ENT_COMPAT,$this->encoding) . '">
+								</label>';
+						}
+					}
+				}
+
+				if ( !empty($field['name']) && ( !empty($field['label']['name']) || $field['type']=='hidden' ) )
+				{
+					$val = !empty($field['value'])?$this->makeValidStr($field['value']):'';
+					$form .= '
+						<label '.(!empty($field['label']['attributes'])?$field['label']['attributes']:'').'>
+							'. $field['label']['name'] .'&nbsp;&nbsp; <input '.(!empty($field['attributes'])?$field['attributes']:'').' type="' . (!empty($field['type'])?$field['type']:$this->showinputs) . '" name="' . strtoupper($field['name']) . '" value="' . htmlspecialchars($val,ENT_COMPAT,$this->encoding) . '">
+						</label>';
+				}
+			}
+
+			$form .= '</div>';
+		}
+
+		$form .= implode('<br/>', $this->userFormContent);
+		$form .= $this->button;
+
+		return $form . "</form>";
+	}
+
+	public function addFormContent($html)
+	{
+		$this->userFormContent[md5($html)] = $html;
+		return $this;
+	}
+
+	#-----------------------------
+	# Make inputs for form
+	#-----------------------------
+	private function makeString( $name, $val )
 	{
 		$str = "";
-		if ( !is_array( $val ) ) return '<input type="'.$this->showinputs.'" name="'.$name.'" value="'.htmlspecialchars($val).'">'."\n";
-		foreach ($val as $v) $str .= $this->makeString( $name.'[]', $v );
+		if ( is_array($val) )
+		{
+			foreach ( $val as $v )
+			{
+				$str .= $this->makeString($name . '[]', $v);
+			}
+		}
+
+		if ( !is_array($val) )
+		{
+			$val = $this->makeValidStr($val);
+			return '<input type="' . $this->showinputs . '" name="' . strtoupper($name) . '" value="' . htmlspecialchars($val,ENT_COMPAT,$this->encoding) . '">' . "\n";
+		}
+
 		return $str;
 	}
 
-#======================= END LU =====================================	
+	#======================= END LU =====================================
 
-
-#======================= IPN READ ANSWER ============================
+	#======================= IPN READ ANSWER ============================
 
 	public function IPN()
-	{	
-		$arr = &$this->dataArr;
+	{
+		$arr = & $this->dataArr;
 		$arr = $_POST;
-		foreach ( $this->IPNcell as $name ) if ( !isset( $arr[ $name ] ) ) die( "Incorrect data" );
 
-		$hash = $arr["HASH"];  
+		foreach ($this->IPNcell as $name) {
+			if (!isset($arr[$name])) {
+				die( "Incorrect data" );
+			}
+		}
+
+		$this->cells = $this->IPNcell;
+		$hash        = $arr["HASH"];
 		unset( $arr["HASH"] );
-		$sign = $this->Signature( $arr );
 
-		if ( $hash != $sign ) return $this;
+		$sign = $this->Signature($arr);
+
+		
+		if ( $hash != $sign )
+		{
+            $this->checkHash = false;
+			return $this;
+		}
+        $this->checkHash = true;
+
 		$datetime = date("YmdHis");
-		$sign = $this->Signature(  array(
-				   						"IPN_PID" => $arr[ "IPN_PID" ][0], 
-				  						"IPN_PNAME" => $arr[ "IPN_PNAME" ][0], 
-				   						"IPN_DATE" => $arr[ "IPN_DATE" ], 
-				   						"DATE" => $datetime
-										)
-								);
+		$sign     = $this->Signature(array(
+			"IPN_PID"   => $arr["IPN_PID"][0],
+			"IPN_PNAME" => $arr["IPN_PNAME"][0],
+			"IPN_DATE"  => $arr["IPN_DATE"],
+			"DATE"      => $datetime
+		));
 
 		$this->answer = "<!-- <EPAYMENT>$datetime|$sign</EPAYMENT> -->";
+
 		return $this;
 	}
 
-#======================= END IPN ============================
+	#======================= END IPN ============================
 
-#======================= Check BACK_REF =====================
-	function checkBackRef( $type = "http")
+	#======================= Check BACK_REF =====================
+	function checkBackRef( $type = "http" )
 	{
-		$path = $type.'://'.$_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI'];
-		$tmp = explode("?", $path);
-		$url = $tmp[0].'?';
+		$path   = $type . '://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
+		$tmp    = explode("?", $path);
+		$url    = $tmp[0] . '?';
 		$params = array();
-		foreach ($_GET as $k => $v)
+		foreach ( $_GET as $k => $v )
 		{
-			if ( $k != "ctrl" ) $params[] = $k.'='.rawurlencode($v);
+			if ( $k != "ctrl" )
+			{
+				$params[] = $k . '=' . rawurlencode($v);
+			}
 		}
-		$url = $url.implode("&", $params);
-		$arr = array($url);
-		$sign = $this->Signature( $arr );
-
-		#echo "$sign === ".$_GET['ctrl'];
+		$url          = $url . implode("&", $params);
+		$arr          = array( $url );
+		$sign         = $this->Signature($arr);
 		$this->answer = ( $sign === $_GET['ctrl'] ) ? true : false;
+
 		return $this->answer;
 	}
 
-#======================= END Check BACK_REF =================
+	#======================= END Check BACK_REF =================
 
-
-#======================= IDN READ ANSWER ============================
-
-	public function IDN()
-	{	
-		$arr = &$this->dataArr;
-		$arr['MERCHANT'] = self::$merchant;
-		if( !isset($arr['IDN_DATE']) ) $arr['IDN_DATE'] = date("Y-m-d H:i:s");
-
-		$arr['ORDER_HASH'] = $this->Signature( $this->IDNcheckArray( $arr ) );
-		$this->sendRequest( $this->idnUrl, $arr);
-
-		return $this;
-	}
-
-	private function IDNcheckArray( $data )
+	private function makeValidStr( $str )
 	{
-		$this->cells = array();
-		$ret = array();
-		foreach ( $this->IDNcell as $k => $v ) 
-		{ 	
-			if ( isset($data[$k]) ) $ret[$k] = $data[$k];
-			 elseif ( $v == 1 ) die("$k is not set");
+		return $str;
+	}
+	private function utf8_strlen( $str )
+	{
+		if ( strtolower($this->encoding) != 'utf-8' )
+		{
+			$str = iconv($this->encoding, 'utf-8', $str);
 		}
-	
-		return $ret;
+
+		return mb_strlen($str,'8bit');
 	}
-
-	function sendRequest( $url, $tdat)
-	{
-
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $url ); 
-		curl_setopt($ch, CURLOPT_POST, true);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, $tdat);
-		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); 
-		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true); 
-		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, true); 
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		 $data = curl_exec($ch);
-
-  		curl_close($ch);
-  		return true;
-	}
-
-#======================= END IDN ============================
-
-
-#======================= IRN READ ANSWER ============================
-
-	public function IRN()
-	{	
-		$arr = &$this->dataArr;
-		$arr['MERCHANT'] = self::$merchant;
-		if( !isset($arr['IRN_DATE']) ) $arr['IRN_DATE'] = date("Y-m-d H:i:s");
-
-		$arr['ORDER_HASH'] = $this->Signature( $this->IRNcheckArray( $arr ) );
-		$this->sendRequest( $this->irnUrl, $arr);
-
-		return $this;
-	}
-
-	private function IRNcheckArray( $data )
-	{
-		$this->cells = array();
-		$ret = array();
-		foreach ( $this->IRNcell as $k => $v ) 
-		{ 	
-			if ( isset($data[$k]) ) $ret[$k] = $data[$k];
-			 elseif ( $v == 1 ) die("$k is not set");
-		}
-	
-		return $ret;
-	}
-
-
-#======================= END IRN ============================
-
 }
-
-?>
