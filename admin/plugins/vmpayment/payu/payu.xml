@@ -47,6 +47,11 @@
 
 				<field name="PAYU_VAT" type="text"  default="0" label="VMPAYMENT_PAYU_PAYU_VAT" description="VMPAYMENT_PAYU_PAYU_VAT_EXPLAIN" />
 				
+				<field name="PAYU_VAT_INCLUDE" type="list" default="GROSS" label="VMPAYMENT_PAYU_PAYU_VAT_INCLUDE" description="VMPAYMENT_PAYU_PAYU_VAT_INCLUDE_EXPLAIN">
+					<option value="GROSS">Да</option>
+					<option value="NET">Нет</option>
+				</field>
+
 				<field name="PAYU_LANGUAGE" type="list" default="RU" label="VMPAYMENT_PAYU_PAYU_LANGUAGE" description="VMPAYMENT_PAYU_PAYU_LANGUAGE_EXPLAIN">
 					<option value="RU">Русский</option>
 					<option value="EN">Английский</option>

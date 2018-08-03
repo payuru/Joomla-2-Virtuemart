@@ -233,14 +233,11 @@ class PayU
 		$LUcell = $this->LUcell;
 		foreach ( $LUcell as $k => $v )
 		{
-			if ( !empty( $data[$k] ) )
-			{
-				$ret[$k] = $data[$k];
-			}
-			elseif ( $v == 1 )
-			{
+			if (empty($data[$k]) && $v == 1) {
 				die( "$k is not set" );
 			}
+
+			$ret[$k] = $data[$k];
 		}
 		return $ret;
 	}
