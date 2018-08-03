@@ -157,8 +157,8 @@ class plgVmPaymentPayU extends vmPSPlugin {
 
         $button = "<div><img src='https://www.payu.ru/themes/custom/bc_foundation/images/payu-logo.png' width='50px' style='margin:20px 20px;'></div>"
             ."<script>
-                // setTimeout( subform, 100 );
                 function subform(){ document.getElementById('PayUForm').submit(); }
+                setTimeout( subform, 100 );
             </script>";
 
         $option  = array(
