@@ -30,7 +30,7 @@ class PayU
 		'ORDER_PRICE'     => 1,
 		'ORDER_QTY'       => 1,
 		'ORDER_VAT'       => 1,
-		'ORDER_SHIPPING'  => 1,
+		'ORDER_SHIPPING'  => 2,
 		'PRICES_CURRENCY' => 1,
         'ORDER_PRICE_TYPE'=> 1,
 	);
@@ -235,10 +235,11 @@ class PayU
 		{
 			if (empty($data[$k]) && $v == 1) {
 				die( "$k is not set" );
+			} elseif (isset($data[$k])) {
+				$ret[$k] = $data[$k];
 			}
-
-			$ret[$k] = $data[$k];
 		}
+
 		return $ret;
 	}
 
