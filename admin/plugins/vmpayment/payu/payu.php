@@ -146,23 +146,24 @@ class plgVmPaymentPayU extends vmPSPlugin {
             $paymentCurrency = CurrencyDisplay::getInstance($currencyObj->virtuemart_currency_id);
             $totalInPaymentCurrency = round($paymentCurrency->convertCurrencyTo($currency_id, $v->allPrices[$v->selectedPrice]['subtotal_with_tax'], false), 2);
 
-            $forsend['ORDER_PNAME'][] = $v->product_name;
-            $forsend['ORDER_PINFO'][] = $v->product_s_desc;
-            $forsend['ORDER_PCODE'][] = $v->virtuemart_product_id;
-            $forsend['ORDER_PRICE'][] = $totalInPaymentCurrency; #$v->product_price;
-            $forsend['ORDER_QTY'][]   = $v->quantity;
-            $forsend['ORDER_VAT'][]   = $method->PAYU_VAT;
+            $forsend['ORDER_PNAME'][]      = $v->product_name;
+            $forsend['ORDER_PINFO'][]      = $v->product_s_desc;
+            $forsend['ORDER_PCODE'][]      = $v->virtuemart_product_id;
+            $forsend['ORDER_PRICE'][]      = $totalInPaymentCurrency; #$v->product_price;
+            $forsend['ORDER_QTY'][]        = $v->quantity;
+            $forsend['ORDER_VAT'][]        = $method->PAYU_VAT;
+            $forsend['ORDER_PRICE_TYPE'][] = $method->PAYU_VAT_INCLUDE ?: 'GROSS';
         }
 
         $button = "<div><img src='https://www.payu.ru/themes/custom/bc_foundation/images/payu-logo.png' width='50px' style='margin:20px 20px;'></div>"
             ."<script>
-                setTimeout( subform, 100 );
+                // setTimeout( subform, 100 );
                 function subform(){ document.getElementById('PayUForm').submit(); }
             </script>";
 
         $option  = array(
             'merchant'  => $method->PAYU_MERCHANT, 
-            'secretkey' =>  $method->PAYU_SECRET_KEY, 
+            'secretkey' => $method->PAYU_SECRET_KEY, 
             'debug'     => $method->PAYU_DEBUG,
             'button'    => $button
         );

@@ -58,10 +58,11 @@
 					<option value="IT">Итальянский</option>
 					<option value="ES">Испанский</option>
 				</field>
+				
+				<field name="status_pending" type="vmorderstate" scope="com_virtuemart" default="P" label="VMPAYMENT_PAYU_STATUS_PENDING" description="VMPAYMENT_PAYU_STATUS_PENDING_EXPLAIN" />
+				<field name="status_success" type="vmorderstate" scope="com_virtuemart" default="P" label="VMPAYMENT_PAYU_STATUS_SUCCESS" description="VMPAYMENT_PAYU_STATUS_SUCCESS_EXPLAIN" />
 			</fieldset>
 		
-			<field name="status_pending" type="vmorderstate" scope="com_virtuemart" default="P" label="VMPAYMENT_PAYU_STATUS_PENDING" description="VMPAYMENT_PAYU_STATUS_PENDING_EXPLAIN" />
-			<field name="status_success" type="vmorderstate" scope="com_virtuemart" default="P" label="VMPAYMENT_PAYU_STATUS_SUCCESS" description="VMPAYMENT_PAYU_STATUS_SUCCESS_EXPLAIN" />
 		</fields>
 	</vmconfig>
 </extension>
